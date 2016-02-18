@@ -20,42 +20,48 @@ uint numDecisions;
 uint numPropagations;
 
 vector<pair<vector<int>,vector<int> > > locations;
-vector<pair<int,int> > freqs;
+vector<pair<int,int> > freqs; // (freq,lit)
 
 
-void readClauses( ){
+void readClauses() {
   // Skip comments
   char c = cin.get();
   while (c == 'c') {
     while (c != '\n') c = cin.get();
     c = cin.get();
   }  
+  
   // Read "cnf numVars numClauses"
   string aux;
   cin >> aux >> numVars >> numClauses;
+  
   clauses.resize(numClauses);
   locations.resize(numVars+1);
   freqs.resize(numVars+1);
   for (int i = 0; i <= numVars; ++i)
     freqs[i] = pair<int,int>(0,i);
+  
   // Read clauses
   for (uint i = 0; i < numClauses; ++i) {
     int lit;
     while (cin >> lit and lit != 0) {
       clauses[i].push_back(lit);
+      
       freqs[abs(lit)].first += 1;
+      
       if (lit > 0)
 	locations[lit].first.push_back(i);
       else
 	locations[-lit].second.push_back(i);
     }
   }
+  
   sort(freqs.begin(),freqs.end(),greater<pair<int,int> >());
 }
 
 
 
-int currentValueInModel(int lit){
+int currentValueInModel(int lit) {
   if (lit >= 0) return model[lit];
   else {
     if (model[-lit] == UNDEF) return UNDEF;
@@ -64,23 +70,26 @@ int currentValueInModel(int lit){
 }
 
 
-void setLiteralToTrue(int lit){
+void setLiteralToTrue(int lit) {
   modelStack.push_back(lit);
   if (lit > 0) model[lit] = TRUE;
   else model[-lit] = FALSE;		
 }
 
 
-bool propagateGivesConflict ( ) {
+bool propagateGivesConflict () {
   while (indexOfNextLitToPropagate < modelStack.size()) {
     ++numPropagations;
+    
     int lit = modelStack[indexOfNextLitToPropagate];
     ++indexOfNextLitToPropagate;
+    
     vector<int> locs;
     if (lit > 0)
       locs = locations[lit].second;
     else
       locs = locations[-lit].first;
+    
     for (uint i = 0; i < locs.size(); ++i) {
       bool someLitTrue = false;
       int numUndefs = 0;
@@ -99,7 +108,7 @@ bool propagateGivesConflict ( ) {
 }
 
 
-void backtrack(){
+void backtrack() {
   uint i = modelStack.size() -1;
   int lit = 0;
   while (modelStack[i] != 0){ // 0 is the DL mark
@@ -126,7 +135,7 @@ int getNextDecisionLiteral() {
   return 0; // returns 0 when all literals are defined
 }
 
-void checkmodel(){
+void checkmodel() {
   for (int i = 0; i < numClauses; ++i){
     bool someTrue = false;
     for (int j = 0; not someTrue and j < clauses[i].size(); ++j)
@@ -140,7 +149,7 @@ void checkmodel(){
   }  
 }
 
-int main(){ 
+int main() { 
   readClauses(); // reads numVars, numClauses and clauses
   model.resize(numVars+1,UNDEF);
   indexOfNextLitToPropagate = 0;  
