@@ -19,6 +19,9 @@ uint decisionLevel;
 uint numDecisions;
 uint numPropagations;
 
+vector<pair<vector<int>,vector<int> > > locations;
+vector<pair<int,int> > freqs;
+
 
 void readClauses( ){
   // Skip comments
@@ -30,12 +33,24 @@ void readClauses( ){
   // Read "cnf numVars numClauses"
   string aux;
   cin >> aux >> numVars >> numClauses;
-  clauses.resize(numClauses);  
+  clauses.resize(numClauses);
+  locations.resize(numVars+1);
+  freqs.resize(numVars+1);
+  for (int i = 0; i <= numVars; ++i)
+    freqs[i] = pair<int,int>(0,i);
   // Read clauses
   for (uint i = 0; i < numClauses; ++i) {
     int lit;
-    while (cin >> lit and lit != 0) clauses[i].push_back(lit);
-  }    
+    while (cin >> lit and lit != 0) {
+      clauses[i].push_back(lit);
+      freqs[abs(lit)].first += 1;
+      if (lit > 0)
+	locations[lit].first.push_back(i);
+      else
+	locations[-lit].second.push_back(i);
+    }
+  }
+  sort(freqs.begin(),freqs.end(),greater<pair<int,int> >());
 }
 
 
@@ -57,17 +72,24 @@ void setLiteralToTrue(int lit){
 
 
 bool propagateGivesConflict ( ) {
-  ++numPropagations;
-  while ( indexOfNextLitToPropagate < modelStack.size() ) {
+  while (indexOfNextLitToPropagate < modelStack.size()) {
+    ++numPropagations;
+    int lit = modelStack[indexOfNextLitToPropagate];
     ++indexOfNextLitToPropagate;
-    for (uint i = 0; i < numClauses; ++i) {
+    vector<int> locs;
+    if (lit > 0)
+      locs = locations[lit].second;
+    else
+      locs = locations[-lit].first;
+    for (uint i = 0; i < locs.size(); ++i) {
       bool someLitTrue = false;
       int numUndefs = 0;
       int lastLitUndef = 0;
-      for (uint k = 0; not someLitTrue and k < clauses[i].size(); ++k){
-	int val = currentValueInModel(clauses[i][k]);
+      int j = locs[i];
+      for (uint k = 0; not someLitTrue and k < clauses[j].size(); ++k){
+	int val = currentValueInModel(clauses[j][k]);
 	if (val == TRUE) someLitTrue = true;
-	else if (val == UNDEF){ ++numUndefs; lastLitUndef = clauses[i][k]; }
+	else if (val == UNDEF){ ++numUndefs; lastLitUndef = clauses[j][k]; }
       }
       if (not someLitTrue and numUndefs == 0) return true; // conflict! all lits false
       else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef); // if there's more than one literal undefinded, unit propagation can't be done
@@ -97,9 +119,11 @@ void backtrack(){
 // Heuristic for finding the next decision literal:
 int getNextDecisionLiteral() {
   ++numDecisions;
-  for (uint i = 1; i <= numVars; ++i) // stupid heuristic:
-    if (model[i] == UNDEF) return i;  // returns first UNDEF var, positively
-  return 0; // reurns 0 when all literals are defined
+  for (uint i = 0; i < freqs.size(); ++i) {
+    int lit = freqs[i].second;
+    if (model[lit] == UNDEF) return lit;
+  }
+  return 0; // returns 0 when all literals are defined
 }
 
 void checkmodel(){

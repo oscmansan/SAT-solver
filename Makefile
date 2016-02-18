@@ -1,5 +1,5 @@
 all:
-	g++ -O3 -o oscarSAT oscarSAT.cpp
+	g++ -std=c++11 -O3 -o oscarSAT oscarSAT.cpp
 
 clean:
 	rm oscarSAT
