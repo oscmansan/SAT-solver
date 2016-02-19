@@ -3,7 +3,7 @@ import time
 import os
 
 for file in sorted(os.listdir('random3SAT/')):
-    if file.startswith('vars-150'):
+    if file.startswith('vars-200'):
 	f = open('random3SAT/' + file)
 	p = subprocess.Popen(['./oscarSAT'], stdin=f, stdout=subprocess.PIPE)
 	print file

@@ -84,13 +84,18 @@ bool propagateGivesConflict () {
     int lit = modelStack[indexOfNextLitToPropagate];
     ++indexOfNextLitToPropagate;
     
-    vector<int> locs;
-    if (lit > 0)
-      locs = locations[lit].second;
-    else
-      locs = locations[-lit].first;
+    int *locs;
+    int size;
+    if (lit > 0) {
+      locs = &locations[lit].second[0];
+      size = locations[lit].second.size();
+    }
+    else {
+      locs = &locations[-lit].first[0];
+      size = locations[-lit].first.size();
+    }
     
-    for (uint i = 0; i < locs.size(); ++i) {
+    for (uint i = 0; i < size; ++i) {
       bool someLitTrue = false;
       int numUndefs = 0;
       int lastLitUndef = 0;
