@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <vector>
+#include <math.h>
 using namespace std;
 
 #define UNDEF -1
@@ -20,7 +21,9 @@ uint numDecisions;
 uint numPropagations;
 
 vector<pair<vector<int>,vector<int> > > locations;
-vector<pair<int,int> > freqs; // (freq,lit)
+vector<int> pfreqs;
+vector<int> nfreqs;
+vector<pair<int,int> > scores;
 
 
 void readClauses() {
@@ -37,9 +40,8 @@ void readClauses() {
   
   clauses.resize(numClauses);
   locations.resize(numVars+1);
-  freqs.resize(numVars+1);
-  for (int i = 0; i <= numVars; ++i)
-    freqs[i] = pair<int,int>(0,i);
+  pfreqs.resize(numVars+1);
+  nfreqs.resize(numVars+1);
   
   // Read clauses
   for (uint i = 0; i < numClauses; ++i) {
@@ -47,16 +49,25 @@ void readClauses() {
     while (cin >> lit and lit != 0) {
       clauses[i].push_back(lit);
       
-      freqs[abs(lit)].first += 1;
-      
-      if (lit > 0)
+      if (lit > 0) {
 	locations[lit].first.push_back(i);
-      else
+	pfreqs[lit] += 1;
+      }
+      else {
 	locations[-lit].second.push_back(i);
+	nfreqs[-lit] += 1;
+      }
     }
-  }
+  }  
   
-  sort(freqs.begin(),freqs.end(),greater<pair<int,int> >());
+  scores.resize(numVars+1);
+  for (int i = 0; i <= numVars; ++i) {
+      int k = 2;
+      int score = (pfreqs[i]+nfreqs[i])*pow(2,k) + pfreqs[i]+nfreqs[i];
+      scores[i] = pair<int,int>(score,i);
+  }
+      
+  sort(scores.begin(),scores.end(),greater<pair<int,int> >());
 }
 
 
@@ -133,8 +144,8 @@ void backtrack() {
 // Heuristic for finding the next decision literal:
 int getNextDecisionLiteral() {
   ++numDecisions;
-  for (uint i = 0; i < freqs.size(); ++i) {
-    int lit = freqs[i].second;
+  for (uint i = 0; i < scores.size(); ++i) {
+    int lit = scores[i].second;
     if (model[lit] == UNDEF) return lit;
   }
   return 0; // returns 0 when all literals are defined
