@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <vector>
-#include <math.h>
 using namespace std;
 
 #define UNDEF -1
 #define TRUE 1
 #define FALSE 0
+#define DECISION_MARK 0
+#define ACTIVITY_INCREMENT 1.0
+#define ACT_INC_UPDATE_RATE 1000
 
 uint numVars;
 uint numClauses;
@@ -24,7 +26,9 @@ uint numConflicts;
 vector<vector<int> > pclauses;
 vector<vector<int> > nclauses;
 
+// Activity counter (number of conflicts in which appears) for positive literals
 vector<double> pactivity;
+// Activity counter (number of conflicts in which appears) for negative literals
 vector<double> nactivity;
 
 
@@ -72,16 +76,14 @@ void setLiteralToTrue(int lit) {
 }
 
 
-void updateActivityForLiteral(int lit) {
-    if (lit > 0) pactivity[lit] += 1;
-    else nactivity[-lit] += 1;
-}
-
-
-void updateActivityForConflictingClause(const vector<int>& clause) {
+// When a conflict is found, the activity of all literals in the clause causing 
+// the conflict is incremented
+void updateActivity(const vector<int>& clause) {
     ++numConflicts;
     
-    if ((numConflicts % 1000) == 0) {
+    // Since recent conflicts should be given more importance, the activity of 
+    // all literals is diminished from time to time
+    if ((numConflicts % ACT_INC_UPDATE_RATE) == 0) {
 	for (uint i = 1; i <= numVars; ++i) {
 	    pactivity[i] /= 2.0;
 	    nactivity[i] /= 2.0;
@@ -89,7 +91,9 @@ void updateActivityForConflictingClause(const vector<int>& clause) {
     }
 
     for (uint i = 0; i < clause.size(); ++i) {
-	updateActivityForLiteral(clause[i]);
+	int lit = clause[i];
+	if (lit > 0) pactivity[lit] += ACTIVITY_INCREMENT;
+	else nactivity[-lit] += ACTIVITY_INCREMENT;
     }
 }
 
@@ -114,13 +118,17 @@ bool propagateGivesConflict () {
 	    for (uint k = 0; not someLitTrue and k < clauses[j].size(); ++k){
 		int val = currentValueInModel(clauses[j][k]);
 		if (val == TRUE) someLitTrue = true;
-		else if (val == UNDEF){ ++numUndefs; lastLitUndef = clauses[j][k]; }
+		else if (val == UNDEF) {
+		    ++numUndefs; 
+		    lastLitUndef = clauses[j][k];
+		}
 	    }
 	    if (not someLitTrue and numUndefs == 0) { // conflict! all lits false
-		updateActivityForConflictingClause(clauses[j]); 
+		updateActivity(clauses[j]);
 		return true;
 	    }
-	    else if (not someLitTrue and numUndefs == 1) setLiteralToTrue(lastLitUndef); // unit propagation
+	    else if (not someLitTrue and numUndefs == 1) 
+		setLiteralToTrue(lastLitUndef); // unit propagation
 	}    
     }
     return false;
@@ -130,7 +138,7 @@ bool propagateGivesConflict () {
 void backtrack() {
     uint i = modelStack.size() -1;
     int lit = 0;
-    while (modelStack[i] != 0){ // 0 is the DL mark
+    while (modelStack[i] != DECISION_MARK) { // 0 is the DL mark
 	lit = modelStack[i];
 	model[abs(lit)] = UNDEF;
 	modelStack.pop_back();
@@ -148,6 +156,8 @@ void backtrack() {
 int getNextDecisionLiteral() {
     ++numDecisions;
     
+    // The literal with the highest activity among those variables still 
+    // undefined in the model is chosen
     double maxActivity = 0.0;
     int mostActiveVar = 0;
     
@@ -169,13 +179,14 @@ int getNextDecisionLiteral() {
 
 
 void checkmodel() {
-    for (int i = 0; i < numClauses; ++i){
+    for (uint i = 0; i < numClauses; ++i){
 	bool someTrue = false;
-	for (int j = 0; not someTrue and j < clauses[i].size(); ++j)
+	for (uint j = 0; not someTrue and j < clauses[i].size(); ++j)
 	    someTrue = (currentValueInModel(clauses[i][j]) == TRUE);
 	if (not someTrue) {
 	    cout << "Error in model, clause is not satisfied:";
-	    for (int j = 0; j < clauses[i].size(); ++j) cout << clauses[i][j] << " ";
+	    for (uint j = 0; j < clauses[i].size(); ++j) 
+		cout << clauses[i][j] << " ";
 	    cout << endl;
 	    exit(1);
 	}
@@ -234,9 +245,9 @@ int main() {
 	if (decisionLit == 0) exitWithSatisfiability(true);
 	
 	// start new decision level:
-	modelStack.push_back(0);  // push mark indicating new DL
+	modelStack.push_back(0); // push mark indicating new DL
 	++indexOfNextLitToPropagate;
 	++decisionLevel;
-	setLiteralToTrue(decisionLit);    // now push decisionLit on top of the mark
+	setLiteralToTrue(decisionLit); // now push decisionLit on top of the mark
     }
 }  
