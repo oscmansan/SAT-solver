@@ -26,10 +26,8 @@ uint numConflicts;
 vector<vector<int> > pclauses;
 vector<vector<int> > nclauses;
 
-// Activity counter (number of conflicts in which appears) for positive literals
-vector<double> pactivity;
-// Activity counter (number of conflicts in which appears) for negative literals
-vector<double> nactivity;
+// Activity counter (number of conflicts in which appears)
+vector<double> activity;
 
 
 void readClauses() {
@@ -48,22 +46,16 @@ void readClauses() {
     pclauses.resize(numVars+1);
     nclauses.resize(numVars+1);
     
-    pactivity.resize(numVars+1,0.0);
-    nactivity.resize(numVars+1,0.0);
+    activity.resize(numVars+1,0.0);
     
     // Read clauses
     for (uint i = 0; i < numClauses; ++i) {
 	int lit;
 	while (cin >> lit and lit != 0) {
 	    clauses[i].push_back(lit);
-	    if (lit > 0) { 
-	      pclauses[lit].push_back(i);
-	      pactivity[lit] += ACTIVITY_INCREMENT;
-	    }
-	    else { 
-	      nclauses[-lit].push_back(i);
-	      nactivity[-lit] += ACTIVITY_INCREMENT;
-	    }
+	    if (lit > 0) pclauses[lit].push_back(i);
+	    else nclauses[-lit].push_back(i);
+	    activity[abs(lit)] += ACTIVITY_INCREMENT;
 	}
     }  
 }
@@ -93,16 +85,13 @@ void updateActivity(const vector<int>& clause) {
     // Since recent conflicts should be given more importance, the activity of 
     // all literals is diminished from time to time
     if ((numConflicts % ACT_INC_UPDATE_RATE) == 0) {
-	for (uint i = 1; i <= numVars; ++i) {
-	    pactivity[i] /= 2.0;
-	    nactivity[i] /= 2.0;
-	}
+	for (uint i = 1; i <= numVars; ++i)
+	    activity[i] /= 2.0;
     }
 
     for (uint i = 0; i < clause.size(); ++i) {
 	int lit = clause[i];
-	if (lit > 0) pactivity[lit] += ACTIVITY_INCREMENT;
-	else nactivity[-lit] += ACTIVITY_INCREMENT;
+	activity[abs(lit)] += ACTIVITY_INCREMENT;
     }
 }
 
@@ -172,13 +161,9 @@ int getNextDecisionLiteral() {
     
     for (uint i = 1; i <= numVars; ++i) {
 	if (model[i] == UNDEF) {
-	    if (pactivity[i] >= maxActivity) { 
-		maxActivity = pactivity[i]; 
+	    if (activity[i] >= maxActivity) { 
+		maxActivity = activity[i]; 
 		mostActiveVar = i; 
-	    }
-	    if (nactivity[i] >= maxActivity) { 
-		maxActivity = nactivity[i]; 
-		mostActiveVar = -i;
 	    }
 	}
     }
