@@ -48,13 +48,22 @@ void readClauses() {
     pclauses.resize(numVars+1);
     nclauses.resize(numVars+1);
     
+    pactivity.resize(numVars+1,0.0);
+    nactivity.resize(numVars+1,0.0);
+    
     // Read clauses
     for (uint i = 0; i < numClauses; ++i) {
 	int lit;
 	while (cin >> lit and lit != 0) {
 	    clauses[i].push_back(lit);
-	    if (lit > 0) pclauses[lit].push_back(i);
-	    else nclauses[-lit].push_back(i);
+	    if (lit > 0) { 
+	      pclauses[lit].push_back(i);
+	      pactivity[lit] += ACTIVITY_INCREMENT;
+	    }
+	    else { 
+	      nclauses[-lit].push_back(i);
+	      nactivity[-lit] += ACTIVITY_INCREMENT;
+	    }
 	}
     }  
 }
@@ -218,12 +227,9 @@ int main() {
     indexOfNextLitToPropagate = 0;  
     decisionLevel = 0;
     
-    pactivity.resize(numVars+1,0.0);
-    nactivity.resize(numVars+1,0.0);
-    numConflicts = 0;
-    
     numDecisions = 0;
     numPropagations = 0;
+    numConflicts = 0;
     
     // Take care of initial unit clauses, if any
     for (uint i = 0; i < numClauses; ++i)
