@@ -14,7 +14,7 @@ def run(cmd,file):
     return elapsed
 
 for file in sorted(os.listdir('random3SAT/')):
-    if file.startswith('vars-300'):
+    if file.startswith('vars-250'):
 	print file
 	print '========================'
 	

@@ -191,15 +191,15 @@ void checkmodel() {
 void exitWithSatisfiability(bool satisfiable) {
     if (satisfiable) {
 	checkmodel(); 
-	cout << "SATISFIABLE" << endl;
-	cout << "decisions: " << numDecisions << endl; 
-	cout << "propagations: " << numPropagations << endl;
+	cout << "s SATISFIABLE" << endl;
+	cout << "c " << numDecisions << " decisions" << endl; 
+	cout << "c " << numPropagations << " propagations" << endl;
 	exit(20);
     }
     else {
-	cout << "UNSATISFIABLE" << endl; 
-	cout << "decisions: " << numDecisions << endl; 
-	cout << "propagations: " << numPropagations << endl;
+	cout << "s UNSATISFIABLE" << endl; 
+	cout << "c " << numDecisions << " decisions" << endl; 
+	cout << "c " << numPropagations << " propagations" << endl;
 	exit(10);
     }
 }
